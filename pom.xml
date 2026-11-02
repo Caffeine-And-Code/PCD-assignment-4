@@ -87,6 +87,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>pcd.exercise1.AlarmApplication</mainClass>
+                    <options>
+                        <!-- host.docker.internal -> loopback only for the UI JVM, see ./hosts -->
+                        <option>-Djdk.net.hosts.file=${project.basedir}/hosts</option>
+                    </options>
                 </configuration>
             </plugin>
             <plugin>

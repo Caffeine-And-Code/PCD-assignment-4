@@ -11,6 +11,7 @@ import pcd.exercise1.gui.DelayControl;
 import pcd.exercise1.gui.ZoneOverviewPanel;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
+import pcd.exercise1.support.SystemConfig;
 
 public class UIActor extends AbstractActorWithStash {
     private static final int PIN_LENGTH = 5;
@@ -146,7 +147,7 @@ public class UIActor extends AbstractActorWithStash {
 
     private void onSensorDetectionRequested(SensorDetectionRequested request) {
         getContext().actorSelection(
-                "pekko://alarm@node3:2551/user/" + request.sensorId()
+                SystemConfig.SENSORS_NODE_PATH + request.sensorId()
         ).tell(request, getSelf());
     }
 

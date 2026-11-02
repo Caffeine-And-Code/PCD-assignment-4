@@ -16,10 +16,10 @@ public abstract class MessagesProtocol {
     public record DeactiveZone() implements Serializable {
     }
 
-    public record ZoneActivated(String zoneId) {
+    public record ZoneActivated(String zoneId) implements Serializable {
     }
 
-    public record ZoneDeactivated(String zoneId) {
+    public record ZoneDeactivated(String zoneId) implements Serializable {
     }
 
     // From UI to actors
@@ -29,26 +29,26 @@ public abstract class MessagesProtocol {
     public record GetSystemStateRequest() implements Serializable {
     }
 
-    public record CreateZone(String zoneId) {
+    public record CreateZone(String zoneId) implements Serializable {
     }
 
     // Only if no sensor in the zone is present
-    public record DeleteZone(String zoneId) {
+    public record DeleteZone(String zoneId) implements Serializable {
     }
 
-    public record AssignSensorToZone(String zoneId, String sensorId) {
+    public record AssignSensorToZone(String zoneId, String sensorId) implements Serializable {
     }
 
-    public record UpdateExitDelay(int seconds) {
+    public record UpdateExitDelay(int seconds) implements Serializable {
     }
 
-    public record UpdateEntryDelay(int seconds) {
+    public record UpdateEntryDelay(int seconds) implements Serializable {
     }
 
-    public record PinEnteredWithZones(String pin, List<String> zonesToActive) {
+    public record PinEnteredWithZones(String pin, List<String> zonesToActive) implements Serializable {
     }
 
-    public record PinEntered(String pin) {
+    public record PinEntered(String pin) implements Serializable {
     }
 
     public record SensorDetection(
@@ -58,38 +58,38 @@ public abstract class MessagesProtocol {
     }
 
     // To UI from actors
-    public record GetZonesReply(Map<String, List<String>> zoneSensors) {
+    public record GetZonesReply(Map<String, List<String>> zoneSensors) implements Serializable {
     }
 
-    public record SystemStateUpdated(SystemState state) {
+    public record SystemStateUpdated(SystemState state) implements Serializable {
     }
 
-    public record ExitDelayUpdated(int seconds) {
+    public record ExitDelayUpdated(int seconds) implements Serializable {
     }
 
-    public record EntryDelayUpdated(int seconds) {
+    public record EntryDelayUpdated(int seconds) implements Serializable {
     }
 
-    public record InvalidPinEntered() {
+    public record InvalidPinEntered() implements Serializable {
     }
 
-    public record UpdatedZoneStates(Map<String, Boolean> zoneStates) {
+    public record UpdatedZoneStates(Map<String, Boolean> zoneStates) implements Serializable {
     }
 
-    public record UpdatedZoneSensors(Map<String, List<String>> zoneSensors) {
+    public record UpdatedZoneSensors(Map<String, List<String>> zoneSensors) implements Serializable {
     }
 
-    public record AlarmActiveUpdate(boolean alarmActive) {
+    public record AlarmActiveUpdate(boolean alarmActive) implements Serializable {
     }
 
-    public record OperationRejected(String reason) {
+    public record OperationRejected(String reason) implements Serializable {
     }
 
     // From UI to UIActor
-    public record SensorDetectionRequested(String sensorId) {
+    public record SensorDetectionRequested(String sensorId) implements Serializable {
     }
 
-    public record EnterPinDigit(int digit, List<String> zonesToActivate) {
+    public record EnterPinDigit(int digit, List<String> zonesToActivate) implements Serializable {
     }
 
     public record BindUi(DelayControl entryDelayLabel, DelayControl exitDelayLabel, ZoneOverviewPanel zoneCanvas,

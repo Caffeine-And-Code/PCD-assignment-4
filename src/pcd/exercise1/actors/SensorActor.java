@@ -5,9 +5,9 @@ import org.apache.pekko.actor.ActorSelection;
 
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetection;
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetectionRequested;
+import pcd.exercise1.support.SystemConfig;
 
 public class SensorActor extends AbstractActor {
-
     private final String sensorId;
     private final String zoneId;
     private final ActorSelection zone;
@@ -20,7 +20,7 @@ public class SensorActor extends AbstractActor {
         this.zoneId = zoneId;
 
         this.zone = getContext().actorSelection(
-                "pekko://alarm@node2:2551/user/" + zoneId
+                SystemConfig.ZONES_NODE_PATH + zoneId
         );
     }
 
