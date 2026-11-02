@@ -5,17 +5,18 @@ import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.util.Duration;
 import org.apache.pekko.actor.AbstractActorWithStash;
-import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Props;
 import pcd.exercise1.gui.DelayControl;
 import pcd.exercise1.gui.ZoneOverviewPanel;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
+import pcd.exercise1.support.SystemConfig;
 
 public class UIActor extends AbstractActorWithStash {
     private static final int PIN_LENGTH = 5;
 
-    private final ActorRef controlUnit;
+    private final ActorSelection controlUnit;
 
     private DelayControl entryDelayRef;
     private DelayControl exitDelayRef;
@@ -25,11 +26,11 @@ public class UIActor extends AbstractActorWithStash {
     private String currentPin = "";
     private SystemState systemState = SystemState.DISARMED;
 
-    public static Props props(ActorRef controlUnit) {
+    public static Props props(ActorSelection controlUnit) {
         return Props.create(UIActor.class, () -> new UIActor(controlUnit));
     }
 
-    private UIActor(ActorRef controlUnit) {
+    private UIActor(ActorSelection controlUnit) {
         this.controlUnit = controlUnit;
     }
 
@@ -145,8 +146,9 @@ public class UIActor extends AbstractActorWithStash {
      **/
 
     private void onSensorDetectionRequested(SensorDetectionRequested request) {
-        getContext().actorSelection(controlUnit.path().child(request.sensorId()))
-                .tell(new SensorDetection(), getSelf());
+        getContext().actorSelection(
+                SystemConfig.SENSORS_NODE_PATH + request.sensorId()
+        ).tell(request, getSelf());
     }
 
     private void onCreateZoneRequest(CreateZone createZone) {

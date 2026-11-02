@@ -1,15 +1,15 @@
 package pcd.exercise1.actors;
 
 import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 
 public class ZoneActor extends AbstractActor {
-    private final ActorRef controlUnitRef;
+    private final ActorSelection controlUnitSelector;
     private final String zoneId;
 
-    public ZoneActor(ActorRef controlUnitRef, String zoneId) {
-        this.controlUnitRef = controlUnitRef;
+    public ZoneActor(ActorSelection controlUnitSelector, String zoneId) {
+        this.controlUnitSelector = controlUnitSelector;
         this.zoneId = zoneId;
     }
 
@@ -37,15 +37,15 @@ public class ZoneActor extends AbstractActor {
 
     private void activeZone(ActiveZone activateZone) {
         getContext().become(active());
-        controlUnitRef.tell(new ZoneActivated(zoneId), getSelf());
+        controlUnitSelector.tell(new ZoneActivated(zoneId), getSelf());
     }
 
     private void deactivateZone(DeactiveZone deactivateZone) {
         getContext().become(inactive());
-        controlUnitRef.tell(new ZoneDeactivated(zoneId), getSelf());
+        controlUnitSelector.tell(new ZoneDeactivated(zoneId), getSelf());
     }
 
     private void forwardSensorDetection(SensorDetection detection) {
-        getContext().getParent().tell(detection, getSelf());
+        controlUnitSelector.tell(detection, getSelf());
     }
 }

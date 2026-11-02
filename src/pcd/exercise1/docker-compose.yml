@@ -10,13 +10,17 @@ services:
   node1:
     image: eclipse-temurin:21-jre-alpine
     hostname: node1
+    ports:
+      - "2551:2551"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
         "pcd.exercise1.ClusterMain" ]
     volumes:
       - ../../../:/app
     environment:
-      CLUSTER_HOST: node1
+      CLUSTER_HOST: host.docker.internal
       CLUSTER_PORT: 2551
       CLUSTER_ROLE: control
     depends_on:
@@ -26,14 +30,18 @@ services:
   node2:
     image: eclipse-temurin:21-jre-alpine
     hostname: node2
+    ports:
+      - "2552:2552"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
         "pcd.exercise1.ClusterMain" ]
     volumes:
       - ../../../:/app
     environment:
-      CLUSTER_HOST: node2
-      CLUSTER_PORT: 2551
+      CLUSTER_HOST: host.docker.internal
+      CLUSTER_PORT: 2552
       CLUSTER_ROLE: zones
     depends_on:
       build:
@@ -44,33 +52,19 @@ services:
   node3:
     image: eclipse-temurin:21-jre-alpine
     hostname: node3
+    ports:
+      - "2553:2553"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
         "pcd.exercise1.ClusterMain" ]
     volumes:
       - ../../../:/app
     environment:
-      CLUSTER_HOST: node3
-      CLUSTER_PORT: 2551
+      CLUSTER_HOST: host.docker.internal
+      CLUSTER_PORT: 2553
       CLUSTER_ROLE: sensors
-    depends_on:
-      build:
-        condition: service_completed_successfully
-      node1:
-        condition: service_started
-
-  node4:
-    image: eclipse-temurin:21-jre-alpine
-    hostname: node4
-    command:
-      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
-        "pcd.exercise1.ClusterMain" ]
-    volumes:
-      - ../../../:/app
-    environment:
-      CLUSTER_HOST: node4
-      CLUSTER_PORT: 2551
-      CLUSTER_ROLE: keypad
     depends_on:
       build:
         condition: service_completed_successfully
