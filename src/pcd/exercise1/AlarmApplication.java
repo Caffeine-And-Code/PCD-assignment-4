@@ -27,7 +27,7 @@ public final class AlarmApplication extends Application {
                 "ui"
         );
 
-        stage.setTitle("Smart Home Alarm");
+        stage.setTitle("Distributed Smart Home Alarm");
         stage.setScene(new Scene(new Dashboard(ui), 760, 560));
         stage.setMinWidth(650);
         stage.setMinHeight(470);

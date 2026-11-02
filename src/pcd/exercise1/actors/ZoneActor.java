@@ -46,6 +46,6 @@ public class ZoneActor extends AbstractActor {
     }
 
     private void forwardSensorDetection(SensorDetection detection) {
-        getContext().getParent().tell(detection, getSelf());
+        controlUnitSelector.tell(detection, getSelf());
     }
 }
