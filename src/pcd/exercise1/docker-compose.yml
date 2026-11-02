@@ -1,0 +1,81 @@
+services:
+  build:
+    image: maven:3.9-eclipse-temurin-21
+    working_dir: /app
+    volumes:
+      - ../../../:/app
+      - maven-repo:/root/.m2
+    command: mvn clean package
+
+  node1:
+    image: eclipse-temurin:21-jre-alpine
+    hostname: node1
+    command:
+      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
+        "pcd.exercise1.ClusterMain" ]
+    volumes:
+      - ../../../:/app
+    environment:
+      CLUSTER_HOST: node1
+      CLUSTER_PORT: 2551
+      CLUSTER_ROLE: control
+    depends_on:
+      build:
+        condition: service_completed_successfully
+
+  node2:
+    image: eclipse-temurin:21-jre-alpine
+    hostname: node2
+    command:
+      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
+        "pcd.exercise1.ClusterMain" ]
+    volumes:
+      - ../../../:/app
+    environment:
+      CLUSTER_HOST: node2
+      CLUSTER_PORT: 2551
+      CLUSTER_ROLE: zones
+    depends_on:
+      build:
+        condition: service_completed_successfully
+      node1:
+        condition: service_started
+
+  node3:
+    image: eclipse-temurin:21-jre-alpine
+    hostname: node3
+    command:
+      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
+        "pcd.exercise1.ClusterMain" ]
+    volumes:
+      - ../../../:/app
+    environment:
+      CLUSTER_HOST: node3
+      CLUSTER_PORT: 2551
+      CLUSTER_ROLE: sensors
+    depends_on:
+      build:
+        condition: service_completed_successfully
+      node1:
+        condition: service_started
+
+  node4:
+    image: eclipse-temurin:21-jre-alpine
+    hostname: node4
+    command:
+      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
+        "pcd.exercise1.ClusterMain" ]
+    volumes:
+      - ../../../:/app
+    environment:
+      CLUSTER_HOST: node4
+      CLUSTER_PORT: 2551
+      CLUSTER_ROLE: keypad
+    depends_on:
+      build:
+        condition: service_completed_successfully
+      node1:
+        condition: service_started
+
+volumes:
+  maven-repo:
