@@ -10,10 +10,10 @@ import java.util.Map;
 public abstract class MessagesProtocol {
 
     // Internally for actor communication
-    public record ActiveZone() {
+    public record ActiveZone() implements Serializable {
     }
 
-    public record DeactiveZone() {
+    public record DeactiveZone() implements Serializable {
     }
 
     public record ZoneActivated(String zoneId) {
@@ -51,7 +51,10 @@ public abstract class MessagesProtocol {
     public record PinEntered(String pin) {
     }
 
-    public record SensorDetection() {
+    public record SensorDetection(
+            String sensorId,
+            String zoneId
+    ) implements Serializable {
     }
 
     // To UI from actors

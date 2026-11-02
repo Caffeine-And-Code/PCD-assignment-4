@@ -10,6 +10,8 @@ services:
   node1:
     image: eclipse-temurin:21-jre-alpine
     hostname: node1
+    ports:
+      - "2551:2551"
     command:
       [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
         "pcd.exercise1.ClusterMain" ]
@@ -53,24 +55,6 @@ services:
       CLUSTER_HOST: node3
       CLUSTER_PORT: 2551
       CLUSTER_ROLE: sensors
-    depends_on:
-      build:
-        condition: service_completed_successfully
-      node1:
-        condition: service_started
-
-  node4:
-    image: eclipse-temurin:21-jre-alpine
-    hostname: node4
-    command:
-      [ "java", "-cp", "/app/target/assignemnt-4-1.0.jar",
-        "pcd.exercise1.ClusterMain" ]
-    volumes:
-      - ../../../:/app
-    environment:
-      CLUSTER_HOST: node4
-      CLUSTER_PORT: 2551
-      CLUSTER_ROLE: keypad
     depends_on:
       build:
         condition: service_completed_successfully
