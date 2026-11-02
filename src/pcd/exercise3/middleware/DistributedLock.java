@@ -8,6 +8,6 @@ public interface DistributedLock {
         HELD
     }
 
-    void acquire();
+    void acquire() throws InterruptedException;
     void release();
 }

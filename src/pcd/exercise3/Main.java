@@ -1,50 +1,45 @@
 package pcd.exercise3;
 
+import pcd.exercise3.middleware.RicardAgrawalaDistributedLock;
 import pcd.exercise3.middleware.RabbitMQTransportService;
-import pcd.exercise3.middleware.RicardAgrawalaMessage;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
+    private static final DateTimeFormatter LOG_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+    private static void log(String message) {
+        System.out.println("[" + LocalDateTime.now().format(LOG_TIME) + "] " + message);
+    }
 
     public static void main(String[] args) throws Exception {
-
+        if (args.length != 1 || args[0].isBlank()) {
+            log("Usage: Main <processId>");
+            return;
+        }
         String processId = args[0];
 
-        try (RabbitMQTransportService transport =
-                     new RabbitMQTransportService(processId)) {
+        try (var transport = new RabbitMQTransportService(processId)) {
+            var lock = new RicardAgrawalaDistributedLock(processId, transport);
+            log("[" + processId + "] attendo gli HELLO_REPLY per 5 secondi");
+            lock.waitForHelloReplies(5);
 
-            transport.onReceive(message -> {
-                System.out.println(
-                        "[" + processId + "] Received: " + message
-                );
-            });
-
-            System.out.println(processId + " ready");
-
-            if (processId.equals("P1")) {
-                Thread.sleep(2000);
-
-                RicardAgrawalaMessage request = new RicardAgrawalaMessage(
-                        RicardAgrawalaMessage.Type.REQUEST,
-                        "P1",
-                        1
-                );
-
-                transport.send("P2", request);
-                System.out.println("[P1] Sent direct REQUEST with timestamp=1 to P2");
-
-                Thread.sleep(2000);
-
-                RicardAgrawalaMessage broadcastRequest = new RicardAgrawalaMessage(
-                        RicardAgrawalaMessage.Type.REQUEST,
-                        "P1",
-                        2
-                );
-
-                transport.sendBroadcast(broadcastRequest);
-                System.out.println("[P1] Sent broadcast REQUEST with timestamp=2");
+            lock.acquire();
+            try {
+                log("ho il lock[" + processId + "]");
+                TimeUnit.SECONDS.sleep(3);
+            } finally {
+                log("rilascio il lock[" + processId + "]");
+                lock.release();
             }
 
-            Thread.sleep(30000);
+            // Restare disponibili: gli altri processi possono ancora richiedere il lock.
+            log("[" + processId + "] Premi Invio solo quando tutti hanno rilasciato il lock.");
+            new BufferedReader(new InputStreamReader(System.in)).readLine();
         }
     }
 }

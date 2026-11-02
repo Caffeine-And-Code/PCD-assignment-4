@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 
 public class RabbitMQTransportService implements TransportService, AutoCloseable{
 
-    private static final String EXCHANGE = "mutex.exchange";
-    private static final String BROADCAST = "mutex.broadcast";
+    private final String exchange;
+    private final String broadcast;
 
     private final Connection connection;
     private final Channel channel;
@@ -19,6 +19,15 @@ public class RabbitMQTransportService implements TransportService, AutoCloseable
     private final ObjectMapper jsonMapper;
 
     public RabbitMQTransportService(String processId) throws IOException, TimeoutException {
+        this(processId, "shared-resource");
+    }
+
+    public RabbitMQTransportService(String processId, String resourceId) throws IOException, TimeoutException {
+        if (resourceId == null || resourceId.isBlank()) {
+            throw new IllegalArgumentException("Resource ID must not be blank");
+        }
+        exchange = "mutex." + resourceId + ".direct";
+        broadcast = "mutex." + resourceId + ".broadcast";
         jsonMapper = new ObjectMapper();
 
         ConnectionFactory factory = new ConnectionFactory();
@@ -28,19 +37,19 @@ public class RabbitMQTransportService implements TransportService, AutoCloseable
         channel = connection.createChannel();
 
         channel.exchangeDeclare(
-                EXCHANGE,
+                exchange,
                 BuiltinExchangeType.DIRECT
         );
 
         channel.exchangeDeclare(
-                BROADCAST,
+                broadcast,
                 BuiltinExchangeType.FANOUT
         );
 
         queueName = channel.queueDeclare().getQueue();
 
-        channel.queueBind(queueName, EXCHANGE, processId);
-        channel.queueBind(queueName, BROADCAST, "");
+        channel.queueBind(queueName, exchange, processId);
+        channel.queueBind(queueName, broadcast, "");
     }
 
     @Override
@@ -64,22 +73,22 @@ public class RabbitMQTransportService implements TransportService, AutoCloseable
     }
 
     @Override
-    public void send(String destination, RicardAgrawalaMessage message) {
+    public synchronized void send(String destination, RicardAgrawalaMessage message) {
         try {
             byte[] messageBytes = jsonMapper.writeValueAsString(message).getBytes(StandardCharsets.UTF_8);
 
-            channel.basicPublish(EXCHANGE, destination, null, messageBytes);
+            channel.basicPublish(exchange, destination, null, messageBytes);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void sendBroadcast(RicardAgrawalaMessage message) {
+    public synchronized void sendBroadcast(RicardAgrawalaMessage message) {
         try {
             byte[] messageBytes = jsonMapper.writeValueAsString(message).getBytes(StandardCharsets.UTF_8);
 
-            channel.basicPublish(BROADCAST, "", null, messageBytes);
+            channel.basicPublish(broadcast, "", null, messageBytes);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
