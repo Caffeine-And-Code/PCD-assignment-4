@@ -9,7 +9,6 @@ public final class ClusterMain {
     }
 
     public static void main(String[] args) {
-
         String role = System.getenv().getOrDefault("CLUSTER_ROLE", "control");
 
         ActorSystem system = ActorSystem.create("alarm", SystemConfig.LoadRemoteConfig());

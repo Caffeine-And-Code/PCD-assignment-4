@@ -1,12 +1,12 @@
 package pcd.exercise1.support;
 
-import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import pcd.exercise1.actors.ControlUnitActor;
 import pcd.exercise1.actors.SensorActor;
-import pcd.exercise1.actors.ZoneActor;
+import pcd.exercise1.actors.ZoneManagerActor;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,13 +16,14 @@ public abstract class ActorFactory {
             "Soggiorno", List.of("Porta2", "Porta3", "Movimento2", "Finestra3")
     );
 
-    private static ActorSelection fetchControlUnit(ActorSystem system) {
-        return system.actorSelection(
+    public static void CreateControlUnit(ActorSystem system) {
+        var uiActor = system.actorSelection(
                 SystemConfig.CONTROL_NODE_PATH + "controlUnit"
         );
-    }
+        var zoneManager = system.actorSelection(
+                SystemConfig.ZONES_NODE_PATH + "zoneManager"
+        );
 
-    public static void CreateControlUnit(ActorSystem system) {
         system.actorOf(
                 Props.create(ControlUnitActor.class,
                         () -> new ControlUnitActor(INITIAL_ZONES)),
@@ -33,17 +34,13 @@ public abstract class ActorFactory {
     }
 
     public static void CreateZones(ActorSystem system) {
-        ActorSelection controlUnit = fetchControlUnit(system);
+        system.actorOf(
+                Props.create(ZoneManagerActor.class,
+                        () -> new ZoneManagerActor((HashMap<String, List<String>>) INITIAL_ZONES)),
+                "zoneManager"
+        );
 
-        for (String zoneId : INITIAL_ZONES.keySet()) {
-            system.actorOf(
-                    Props.create(ZoneActor.class,
-                            () -> new ZoneActor(controlUnit, zoneId)),
-                    zoneId
-            );
-        }
-
-        System.out.println("Zone actors started");
+        System.out.println("Zones and ZoneManager actors started");
     }
 
     public static void CreateSensors(ActorSystem system) {

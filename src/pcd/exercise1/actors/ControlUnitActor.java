@@ -1,6 +1,5 @@
 package pcd.exercise1.actors;
 
-import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Cancellable;
@@ -13,8 +12,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ControlUnitActor extends AbstractActor {
-
+public class ControlUnitActor extends Actor {
+    public String NODE_NAME = "";
     private static final int EXIT_LOWER_LIMIT = 20;
     private static final int EXIT_UPPER_LIMIT = 60;
     private static final int ENTRY_LOWER_LIMIT = 10;
@@ -27,9 +26,11 @@ public class ControlUnitActor extends AbstractActor {
     public record EntryTimeout() {
     }
 
+    private final ActorSelection uiActorSelection;
+    private final ActorSelection zoneManagerSelection;
+
     private final HashMap<String, List<String>> zoneSensors = new HashMap<>();
     private SystemState state = SystemState.RECOVERY;
-    private ActorRef uiActorRef;
     private int exitDelay = 30;
     private int entryDelay = 30;
 
@@ -38,8 +39,9 @@ public class ControlUnitActor extends AbstractActor {
 
     private final Set<String> activeZones = new HashSet<>();
 
-    public ControlUnitActor(Map<String, List<String>> initialZoneSensors) {
-        initialZoneSensors.forEach((zoneId, sensors) -> zoneSensors.put(zoneId, new ArrayList<>(sensors)));
+    public ControlUnitActor(ActorSelection zoneManagerSelection, ActorSelection uiActorSelection) {
+        this.zoneManagerSelection = zoneManagerSelection;
+        this.uiActorSelection = uiActorSelection;
     }
 
     private ActorSelection getZone(String zoneId) {
@@ -67,7 +69,7 @@ public class ControlUnitActor extends AbstractActor {
     private Receive disarmed() {
         //noinspection deprecation
         return defaultBuilder()
-                //.match(CreateZone.class, this::OnCreateZone)
+                .match(CreateZone.class, this::OnCreateZone)
                 //.match(DeleteZone.class, this::OnDeleteZone)
                 //.match(AssignSensorToZone.class, this::OnAssignSensorToZone)
                 .match(UpdateExitDelay.class, this::OnUpdateExitDelay)
@@ -128,28 +130,24 @@ public class ControlUnitActor extends AbstractActor {
     }
 
     private void onGetSystemStateRequest(GetSystemStateRequest request) {
-        uiActorRef = getSender();
-        uiActorRef.tell(new SystemStateUpdated(state), getSelf());
-        uiActorRef.tell(new ExitDelayUpdated(exitDelay), getSelf());
-        uiActorRef.tell(new EntryDelayUpdated(entryDelay), getSelf());
+        uiActorSelection.tell(new SystemStateUpdated(state), getSelf());
+        uiActorSelection.tell(new ExitDelayUpdated(exitDelay), getSelf());
+        uiActorSelection.tell(new EntryDelayUpdated(entryDelay), getSelf());
         publishZones();
     }
 
-    /**
+
     public void OnCreateZone(CreateZone createZone) {
         var zoneId = createZone.zoneId() == null ? "" : createZone.zoneId().trim();
-        if (!zoneId.isEmpty() && org.apache.pekko.actor.ActorPath.isValidPathElement(zoneId)
-                && getContext().findChild(zoneId).isEmpty()) {
+        if (!zoneId.isEmpty()) {
             getContext().actorOf(Props.create(ZoneActor.class, getSelf(), zoneId), zoneId);
-            this.zoneSensors.put(zoneId, new ArrayList<>());
-        } else {
-            getSender().tell(new OperationRejected("Use a unique zone name without spaces or slashes."), getSelf());
         }
 
         sendUpdatedZoneSensors(getSender());
         publishZones();
     }
 
+    /**
     public void OnDeleteZone(DeleteZone deleteZone) {
         var zoneId = deleteZone.zoneId();
         if (zoneSensors.containsKey(zoneId) && zoneSensors.get(zoneId).isEmpty()) {
@@ -305,17 +303,17 @@ public class ControlUnitActor extends AbstractActor {
     private void updateState(SystemState newState) {
         state = newState;
         publishZones();
-        if (uiActorRef != null) {
-            uiActorRef.tell(new SystemStateUpdated(state), getSelf());
+        if (uiActorSelection != null) {
+            uiActorSelection.tell(new SystemStateUpdated(state), getSelf());
         }
     }
 
     private void publishZones() {
-        if (uiActorRef != null) {
-            uiActorRef.tell(new UpdatedZoneStates(zoneSensors.keySet().stream().collect(
+        if (uiActorSelection != null) {
+            uiActorSelection.tell(new UpdatedZoneStates(zoneSensors.keySet().stream().collect(
                     Collectors.toUnmodifiableMap(zone -> zone, zone ->
                             state != SystemState.DISARMED && state != SystemState.EXIT_DELAY && activeZones.contains(zone)))), getSelf());
-            uiActorRef.tell(new AlarmActiveUpdate(state == SystemState.ALARM), getSelf());
+            uiActorSelection.tell(new AlarmActiveUpdate(state == SystemState.ALARM), getSelf());
         }
     }
 

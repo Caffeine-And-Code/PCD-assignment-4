@@ -10,6 +10,7 @@ public abstract class SystemConfig {
     public static final String ZONES_NODE_PATH = "pekko://alarm@" + HOST + ":2552/user/";
     public static final String SENSORS_NODE_PATH = "pekko://alarm@" + HOST + ":2553/user/";
     public static final String CONTROL_NODE_PATH_FOR_LOCAL_ENVIROMENT = CONTROL_NODE_PATH + "controlUnit";
+    public static final String UIACTOR_NODE_PATH = "/user/uiActor";
 
     public static Config LoadRemoteConfig() {
         return ConfigFactory.load("cluster.conf");
