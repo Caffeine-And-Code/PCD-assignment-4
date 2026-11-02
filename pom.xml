@@ -13,8 +13,6 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <pekko.version>1.5.0</pekko.version>
-        <vertx.version>5.2.1</vertx.version>
-        <rxjava.version>3.1.12</rxjava.version>
     </properties>
 
     <dependencies>
@@ -82,22 +80,6 @@
                 <configuration>
                     <mainClass>exercise1.Main</mainClass>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>

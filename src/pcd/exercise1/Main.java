@@ -1,7 +1,9 @@
 package pcd.exercise1;
 
-public class Main{
-    public void main(String[] args){
-        System.out.println("Up And running!");
+import javafx.application.Application;
+
+public final class Main {
+    public static void main(String[] args) {
+        Application.launch(AlarmApplication.class, args);
     }
 }
