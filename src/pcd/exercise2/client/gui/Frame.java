@@ -39,6 +39,7 @@ public class Frame extends BorderPane {
         setTop(top);
         setCenter(status);
         setBottom(board);
+        BorderPane.setMargin(board, new Insets(12, 0, 0, 0));
     }
 
     public void setBusy(boolean busy) {
