@@ -23,10 +23,10 @@ public abstract class MessagesProtocol {
     }
 
     // From UI to actors
-    public record GetZonesRequest() {
+    public record GetZonesRequest() implements Serializable {
     }
 
-    public record GetSystemStateRequest() {
+    public record GetSystemStateRequest() implements Serializable {
     }
 
     public record CreateZone(String zoneId) {

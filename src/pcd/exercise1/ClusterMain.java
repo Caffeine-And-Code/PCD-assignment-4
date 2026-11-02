@@ -1,9 +1,8 @@
 package pcd.exercise1;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import org.apache.pekko.actor.ActorSystem;
 import pcd.exercise1.support.ActorFactory;
+import pcd.exercise1.support.SystemConfig;
 
 public final class ClusterMain {
     private ClusterMain() {
@@ -13,8 +12,7 @@ public final class ClusterMain {
 
         String role = System.getenv().getOrDefault("CLUSTER_ROLE", "control");
 
-        Config config = ConfigFactory.load("cluster.conf");
-        ActorSystem system = ActorSystem.create("alarm", config);
+        ActorSystem system = ActorSystem.create("alarm", SystemConfig.LoadRemoteConfig());
 
         switch (role) {
             case "control" -> ActorFactory.CreateControlUnit(system);

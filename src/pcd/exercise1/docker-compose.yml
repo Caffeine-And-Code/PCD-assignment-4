@@ -19,7 +19,6 @@ services:
       - ../../../:/app
     environment:
       CLUSTER_HOST: node1
-      CLUSTER_PORT: 2551
       CLUSTER_ROLE: control
     depends_on:
       build:

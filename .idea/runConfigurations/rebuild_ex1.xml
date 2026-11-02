@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="rebuild ex1" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="mvn clean package &amp;&amp; cd src/pcd/exercise1 &amp;&amp; docker compose down &amp;&amp; docker compose up --build -d" />
+    <option name="SCRIPT_TEXT" value="mvn clean package &amp;&amp; cd src/pcd/exercise1 &amp;&amp; docker compose down &amp;&amp; docker compose up --build -d &amp;&amp; cd ../../.. &amp;&amp; mvn javafx:run" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />

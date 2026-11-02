@@ -1,7 +1,5 @@
 package pcd.exercise1;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -9,18 +7,22 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import pcd.exercise1.actors.UIActor;
 import pcd.exercise1.gui.Dashboard;
+import pcd.exercise1.support.SystemConfig;
 
 public final class AlarmApplication extends Application {
     private ActorSystem system;
 
+    public static void main(String[] args) {
+        Application.launch(AlarmApplication.class, args);
+    }
+
     @Override
     public void start(Stage stage) {
-        Config config = ConfigFactory.load("local-applicaion.conf");
-        system = ActorSystem.create("alarm", config);
+        system = ActorSystem.create("alarm", SystemConfig.LoadLocalConfig());
 
         ActorRef ui = system.actorOf(
                 UIActor.props(
-                        system.actorSelection("pekko://alarm@localhost:2551/user/controlUnit")
+                        system.actorSelection(SystemConfig.CONTROL_NODE_PATH_FOR_LOCAL_ENVIROMENT)
                 ),
                 "ui"
         );
