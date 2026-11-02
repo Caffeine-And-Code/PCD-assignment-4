@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Exercise 2 Server" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="pcd.exercise2.server.Main" />
+    <module name="assignemnt-4" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
