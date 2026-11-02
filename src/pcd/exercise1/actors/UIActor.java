@@ -7,13 +7,16 @@ import javafx.util.Duration;
 import org.apache.pekko.actor.AbstractActorWithStash;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Props;
+import pcd.exercise1.actors.base.NodeActor;
+import pcd.exercise1.actors.base.NodeName;
 import pcd.exercise1.gui.DelayControl;
 import pcd.exercise1.gui.ZoneOverviewPanel;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
 import pcd.exercise1.support.SystemConfig;
 
-public class UIActor extends AbstractActorWithStash {
+@NodeName("UiActor")
+public class UIActor extends AbstractActorWithStash implements NodeActor {
     private static final int PIN_LENGTH = 5;
 
     private final ActorSelection controlUnit;
@@ -24,7 +27,7 @@ public class UIActor extends AbstractActorWithStash {
     private Label errorLabel;
     private Label systemStateLabel;
     private String currentPin = "";
-    private SystemState systemState = SystemState.DISARMED;
+    private SystemState systemState = SystemState.RECOVERY;
 
     public static Props props(ActorSelection controlUnit) {
         return Props.create(UIActor.class, () -> new UIActor(controlUnit));

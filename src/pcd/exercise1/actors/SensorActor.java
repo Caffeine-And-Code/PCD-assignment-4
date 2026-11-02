@@ -3,11 +3,12 @@ package pcd.exercise1.actors;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorSelection;
 
+import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetection;
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetectionRequested;
 import pcd.exercise1.support.SystemConfig;
 
-public class SensorActor extends AbstractActor {
+public class SensorActor extends AbstractActor implements NodeActor {
     private final String sensorId;
     private final String zoneId;
     private final ActorSelection zone;

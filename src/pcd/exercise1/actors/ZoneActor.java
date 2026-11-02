@@ -2,14 +2,18 @@ package pcd.exercise1.actors;
 
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorSelection;
+import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.protocols.MessagesProtocol.*;
+import pcd.exercise1.support.SystemConfig;
 
-public class ZoneActor extends AbstractActor {
+public class ZoneActor extends AbstractActor implements NodeActor {
     private final ActorSelection controlUnitSelector;
     private final String zoneId;
 
-    public ZoneActor(ActorSelection controlUnitSelector, String zoneId) {
-        this.controlUnitSelector = controlUnitSelector;
+    public ZoneActor(String zoneId) {
+        this.controlUnitSelector = getContext().actorSelection(
+                SystemConfig.CONTROL_NODE_PATH + NodeActor.getNodeName(ControlUnitActor.class)
+        );
         this.zoneId = zoneId;
     }
 

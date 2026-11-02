@@ -5,8 +5,8 @@ import org.apache.pekko.actor.Props;
 import pcd.exercise1.actors.ControlUnitActor;
 import pcd.exercise1.actors.SensorActor;
 import pcd.exercise1.actors.ZoneManagerActor;
+import pcd.exercise1.actors.base.NodeActor;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,16 +18,16 @@ public abstract class ActorFactory {
 
     public static void CreateControlUnit(ActorSystem system) {
         var uiActor = system.actorSelection(
-                SystemConfig.CONTROL_NODE_PATH + "controlUnit"
+                SystemConfig.UIACTOR_NODE_PATH + NodeActor.getNodeName(ControlUnitActor.class)
         );
         var zoneManager = system.actorSelection(
-                SystemConfig.ZONES_NODE_PATH + "zoneManager"
+                SystemConfig.ZONES_NODE_PATH + NodeActor.getNodeName(ZoneManagerActor.class)
         );
 
         system.actorOf(
                 Props.create(ControlUnitActor.class,
-                        () -> new ControlUnitActor(INITIAL_ZONES)),
-                "controlUnit"
+                        () -> new ControlUnitActor(zoneManager, uiActor)),
+                NodeActor.getNodeName(ControlUnitActor.class)
         );
 
         System.out.println("Control Unit started");
@@ -36,8 +36,8 @@ public abstract class ActorFactory {
     public static void CreateZones(ActorSystem system) {
         system.actorOf(
                 Props.create(ZoneManagerActor.class,
-                        () -> new ZoneManagerActor((HashMap<String, List<String>>) INITIAL_ZONES)),
-                "zoneManager"
+                        () -> new ZoneManagerActor(INITIAL_ZONES)),
+                NodeActor.getNodeName(ZoneManagerActor.class)
         );
 
         System.out.println("Zones and ZoneManager actors started");

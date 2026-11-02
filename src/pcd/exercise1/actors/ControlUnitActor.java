@@ -1,9 +1,12 @@
 package pcd.exercise1.actors;
 
+import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Cancellable;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
+import pcd.exercise1.actors.base.NodeActor;
+import pcd.exercise1.actors.base.NodeName;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
 import pcd.exercise1.support.SystemConfig;
@@ -12,8 +15,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ControlUnitActor extends Actor {
-    public String NODE_NAME = "";
+@NodeName("ControlUnit")
+public class ControlUnitActor extends AbstractActor implements NodeActor {
     private static final int EXIT_LOWER_LIMIT = 20;
     private static final int EXIT_UPPER_LIMIT = 60;
     private static final int ENTRY_LOWER_LIMIT = 10;
@@ -140,7 +143,7 @@ public class ControlUnitActor extends Actor {
     public void OnCreateZone(CreateZone createZone) {
         var zoneId = createZone.zoneId() == null ? "" : createZone.zoneId().trim();
         if (!zoneId.isEmpty()) {
-            getContext().actorOf(Props.create(ZoneActor.class, getSelf(), zoneId), zoneId);
+            zoneManagerSelection.tell(createZone, getSelf());
         }
 
         sendUpdatedZoneSensors(getSender());
