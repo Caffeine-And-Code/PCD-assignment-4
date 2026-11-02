@@ -118,6 +118,7 @@ public class UIActor extends AbstractActorWithStash {
             case ARMED -> "Armed";
             case ENTRY_DELAY -> "Entry delay";
             case ALARM -> "Alarm";
+            case RECOVERY -> "Recovering...";
         };
 
         Platform.runLater(() -> {
