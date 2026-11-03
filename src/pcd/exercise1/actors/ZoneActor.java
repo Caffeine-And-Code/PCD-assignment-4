@@ -10,8 +10,10 @@ import pcd.exercise1.support.SystemConfig;
 
 public class ZoneActor extends AbstractActor implements NodeActor {
     private final ActorSelection controlUnitSelector;
+    private final String zoneId;
 
     public ZoneActor(String zoneId) {
+        this.zoneId = zoneId;
         this.controlUnitSelector = getContext().actorSelection(
                 SystemConfig.CONTROL_NODE_PATH + NodeActor.getNodeName(ControlUnitActor.class)
         );
@@ -40,6 +42,9 @@ public class ZoneActor extends AbstractActor implements NodeActor {
     }
 
     private void forwardSensorDetection(SensorDetection detection) {
-        controlUnitSelector.tell(detection, getSelf());
+        controlUnitSelector.tell(
+                new SensorDetection(detection.sensorId(), detection.type(), zoneId),
+                getSelf()
+        );
     }
 }
