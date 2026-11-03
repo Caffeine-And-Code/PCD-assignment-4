@@ -5,6 +5,7 @@ import org.apache.pekko.actor.Props;
 import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.actors.base.NodeName;
 import pcd.exercise1.protocols.MessagesProtocol.*;
+import pcd.exercise1.support.SystemConfig;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,14 +36,13 @@ public class ZoneManagerActor extends AbstractActor implements NodeActor {
                 .match(AssignSensorToZone.class, this::OnAssignSensorToZone)
                 // Activate/Deactivate Zones
                 .match(DeactivateAllZones.class, this::OnDeactivateAllZones)
-                .match(DeactivateAllZones.class, this::OnDeactivateAllZones)
-                .match(ZoneActivated.class, this::OnActivateZone)
-                .match(ZoneDeactivated.class, this::OnDeactivateZone)
                 .match(ActivateZonesRange.class, this::OnActivateZonesRange)
                 .build();
     }
 
-    /** -- Zones Crud -- **/
+    /**
+     * -- Zones Crud --
+     **/
 
     private void OnCreateZone(CreateZone createZone) {
         if (zoneSensors.containsKey(createZone.zoneId())) {
@@ -55,14 +55,14 @@ public class ZoneManagerActor extends AbstractActor implements NodeActor {
         getSender().tell(new GetZonesReply(getZoneSensorCopy()), getSelf());
     }
 
-    private void OnDeleteZone(DeleteZone deleteZone){
+    private void OnDeleteZone(DeleteZone deleteZone) {
         var zoneId = deleteZone.zoneId();
-        if(!zoneSensors.containsKey(zoneId)){
+        if (!zoneSensors.containsKey(zoneId)) {
             getSender().tell(new OperationRejected("Zone does not exist."), getSelf());
             return;
         }
 
-        if(!zoneSensors.get(zoneId).isEmpty()){
+        if (!zoneSensors.get(zoneId).isEmpty()) {
             getSender().tell(new OperationRejected("Move all the sensors before deleting the zone."), getSelf());
             return;
         }
@@ -72,26 +72,32 @@ public class ZoneManagerActor extends AbstractActor implements NodeActor {
         getSender().tell(new GetZonesReply(getZoneSensorCopy()), getSelf());
     }
 
-    private void OnAssignSensorToZone(AssignSensorToZone assignSensorToZone){
+    private void OnAssignSensorToZone(AssignSensorToZone assignSensorToZone) {
         var zoneId = assignSensorToZone.zoneId();
         var sensorId = assignSensorToZone.sensorId();
         var oldZoneId = zoneSensors.entrySet().stream().filter(entry -> entry.getValue().contains(sensorId)).findFirst();
 
-        if (zoneSensors.containsKey(zoneId) && oldZoneId.isPresent()) {
+        if (zoneSensors.containsKey(zoneId) && oldZoneId.isPresent()
+                && !oldZoneId.get().getKey().equals(zoneId)) {
             zoneSensors.get(oldZoneId.get().getKey()).remove(sensorId);
             zoneSensors.get(zoneId).add(sensorId);
+
+            getContext().actorSelection(SystemConfig.SENSORS_NODE_PATH + sensorId)
+                    .tell(new SensorZoneChanged(zoneId), getSelf());
         }
 
         getSender().tell(new GetZonesReply(getZoneSensorCopy()), getSelf());
     }
 
-    private void OnGetZonesRequest(GetZonesRequest req){
+    private void OnGetZonesRequest(GetZonesRequest req) {
         getSender().tell(new GetZonesReply(getZoneSensorCopy()), getSelf());
     }
 
-    /** -- Activate/Deactivate Zones -- **/
+    /**
+     * -- Activate/Deactivate Zones --
+     **/
 
-    private void OnDeactivateAllZones(DeactivateAllZones req){
+    private void OnDeactivateAllZones(DeactivateAllZones req) {
         activeZones.clear();
         getContext().getChildren()
                 .forEach(child -> child.tell(new DeactiveZone(), getSelf()));
@@ -99,40 +105,32 @@ public class ZoneManagerActor extends AbstractActor implements NodeActor {
         notifyControlUnitOfZoneStateUpdate();
     }
 
-    private void OnDeactivateZone(ZoneDeactivated req){
-        if(activeZones.remove(req.zoneId())){
-            getContext().findChild(req.zoneId())
-                    .ifPresent(child -> child.tell(new DeactiveZone(), getSelf()));
+    private void OnActivateZonesRange(ActivateZonesRange req) {
+        if (!zoneSensors.keySet().containsAll(req.toActivate())) {
+            getSender().tell(new OperationRejected("Some of the selected zones do not exist."), getSelf());
+            notifyControlUnitOfZoneStateUpdate();
+            return;
         }
 
-        notifyControlUnitOfZoneStateUpdate();
-    }
-
-    private void OnActivateZone(ZoneActivated req){
-        if(zoneSensors.containsKey(req.zoneId())) {
-            activeZones.add(req.zoneId());
-            getContext().findChild(req.zoneId())
-                    .ifPresent(child -> child.tell(new ActiveZone(), getSelf()));
-        }
-
-        notifyControlUnitOfZoneStateUpdate();
-    }
-
-    private void OnActivateZonesRange(ActivateZonesRange req){
-        if(req.clearAlreadyActiveZones()){
+        if (req.clearAlreadyActiveZones()) {
             activeZones.clear();
         }
+        activeZones.addAll(req.toActivate());
 
-        if(zoneSensors.keySet().containsAll(req.toActivate())){
-            activeZones.addAll(req.toActivate());
-            getContext().getChildren()
-                    .forEach(child -> child.tell(new ActiveZone(), getSelf()));
-        }
+        getContext().getChildren().forEach(child -> {
+            if (activeZones.contains(child.path().name())) {
+                child.tell(new ActiveZone(), getSelf());
+            } else {
+                child.tell(new DeactiveZone(), getSelf());
+            }
+        });
 
         notifyControlUnitOfZoneStateUpdate();
     }
 
-    /** -- Utils -- **/
+    /**
+     * -- Utils --
+     **/
 
     private Map<String, List<String>> getZoneSensorCopy() {
         return zoneSensors.entrySet().stream()
@@ -142,7 +140,7 @@ public class ZoneManagerActor extends AbstractActor implements NodeActor {
                 ));
     }
 
-    private void notifyControlUnitOfZoneStateUpdate(){
+    private void notifyControlUnitOfZoneStateUpdate() {
         var immutableActiveSensorMap = zoneSensors.keySet().stream().collect(
                 Collectors.toUnmodifiableMap(zone -> zone, activeZones::contains)
         );

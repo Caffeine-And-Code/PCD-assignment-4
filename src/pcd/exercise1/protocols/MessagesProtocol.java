@@ -16,10 +16,7 @@ public abstract class MessagesProtocol {
     public record DeactiveZone() implements Serializable {
     }
 
-    public record ZoneActivated(String zoneId) implements Serializable {
-    }
-
-    public record ZoneDeactivated(String zoneId) implements Serializable {
+    public record SensorZoneChanged(String zoneId) implements Serializable {
     }
 
     public record DeactivateAllZones() implements Serializable {
@@ -59,6 +56,7 @@ public abstract class MessagesProtocol {
 
     public record SensorDetection(
             String sensorId,
+            SensorType type,
             String zoneId
     ) implements Serializable {
     }

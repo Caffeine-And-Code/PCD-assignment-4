@@ -7,6 +7,7 @@ import pcd.exercise1.actors.SensorActor;
 import pcd.exercise1.actors.UIActor;
 import pcd.exercise1.actors.ZoneManagerActor;
 import pcd.exercise1.actors.base.NodeActor;
+import pcd.exercise1.protocols.SensorType;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,17 @@ public abstract class ActorFactory {
     private static final Map<String, List<String>> INITIAL_ZONES = Map.of(
             "Atrio", List.of("Porta1", "Movimento1", "Finestra1", "Finestra2"),
             "Soggiorno", List.of("Porta2", "Porta3", "Movimento2", "Finestra3")
+    );
+
+    private static final Map<String, SensorType> SENSOR_TYPES = Map.ofEntries(
+            Map.entry("Porta1", SensorType.DOOR_WINDOW),
+            Map.entry("Finestra1", SensorType.DOOR_WINDOW),
+            Map.entry("Finestra2", SensorType.DOOR_WINDOW),
+            Map.entry("Movimento1", SensorType.MOTION),
+            Map.entry("Porta2", SensorType.DOOR_WINDOW),
+            Map.entry("Porta3", SensorType.DOOR_WINDOW),
+            Map.entry("Finestra3", SensorType.DOOR_WINDOW),
+            Map.entry("Movimento2", SensorType.MOTION)
     );
 
     public static void CreateControlUnit(ActorSystem system) {
@@ -50,7 +62,7 @@ public abstract class ActorFactory {
                 system.actorOf(
                         Props.create(
                                 SensorActor.class,
-                                () -> new SensorActor(sensorId, zoneId)
+                                () -> new SensorActor(sensorId, SENSOR_TYPES.get(sensorId), zoneId)
                         ),
                         sensorId
                 );

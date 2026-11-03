@@ -3,18 +3,18 @@ package pcd.exercise1.actors;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorSelection;
 import pcd.exercise1.actors.base.NodeActor;
-import pcd.exercise1.protocols.MessagesProtocol.*;
+import pcd.exercise1.protocols.MessagesProtocol.ActiveZone;
+import pcd.exercise1.protocols.MessagesProtocol.DeactiveZone;
+import pcd.exercise1.protocols.MessagesProtocol.SensorDetection;
 import pcd.exercise1.support.SystemConfig;
 
 public class ZoneActor extends AbstractActor implements NodeActor {
     private final ActorSelection controlUnitSelector;
-    private final String zoneId;
 
     public ZoneActor(String zoneId) {
         this.controlUnitSelector = getContext().actorSelection(
                 SystemConfig.CONTROL_NODE_PATH + NodeActor.getNodeName(ControlUnitActor.class)
         );
-        this.zoneId = zoneId;
     }
 
     @Override
@@ -23,30 +23,20 @@ public class ZoneActor extends AbstractActor implements NodeActor {
     }
 
     public Receive inactive() {
-        //noinspection deprecation
         return receiveBuilder()
-                .match(ActiveZone.class, this::activeZone)
-                .match(DeactiveZone.class, this::deactivateZone)
+                .match(ActiveZone.class, msg -> getContext().become(active()))
+                .match(DeactiveZone.class, msg -> { /* already inactive */ })
+                .match(SensorDetection.class, msg -> { /* ignored when inactive */ })
                 .build();
     }
 
     public Receive active() {
         //noinspection deprecation
         return receiveBuilder()
-                .match(ActiveZone.class, this::activeZone)
-                .match(DeactiveZone.class, this::deactivateZone)
+                .match(ActiveZone.class, msg -> { /* already active */ })
+                .match(DeactiveZone.class, msg -> getContext().become(inactive()))
                 .match(SensorDetection.class, this::forwardSensorDetection)
                 .build();
-    }
-
-    private void activeZone(ActiveZone activateZone) {
-        getContext().become(active());
-        controlUnitSelector.tell(new ZoneActivated(zoneId), getSelf());
-    }
-
-    private void deactivateZone(DeactiveZone deactivateZone) {
-        getContext().become(inactive());
-        controlUnitSelector.tell(new ZoneDeactivated(zoneId), getSelf());
     }
 
     private void forwardSensorDetection(SensorDetection detection) {

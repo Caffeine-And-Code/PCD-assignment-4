@@ -6,22 +6,32 @@ import org.apache.pekko.actor.ActorSelection;
 import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetection;
 import pcd.exercise1.protocols.MessagesProtocol.SensorDetectionRequested;
+import pcd.exercise1.protocols.MessagesProtocol.SensorZoneChanged;
+import pcd.exercise1.protocols.SensorType;
 import pcd.exercise1.support.SystemConfig;
 
 public class SensorActor extends AbstractActor implements NodeActor {
     private final String sensorId;
-    private final String zoneId;
-    private final ActorSelection zone;
+    private final SensorType type;
+
+    private String zoneId;
+    private ActorSelection zone;
 
     public SensorActor(
             String sensorId,
+            SensorType type,
             String zoneId
     ) {
         this.sensorId = sensorId;
-        this.zoneId = zoneId;
+        this.type = type;
+        bindToZone(zoneId);
+    }
 
+    private void bindToZone(String zoneId) {
+        this.zoneId = zoneId;
         this.zone = getContext().actorSelection(
-                SystemConfig.ZONES_NODE_PATH + zoneId
+                SystemConfig.ZONES_NODE_PATH
+                        + NodeActor.getNodeName(ZoneManagerActor.class) + "/" + zoneId
         );
     }
 
@@ -29,10 +39,8 @@ public class SensorActor extends AbstractActor implements NodeActor {
     public Receive createReceive() {
         //noinspection deprecation
         return receiveBuilder()
-                .match(
-                        SensorDetectionRequested.class,
-                        this::onDetectionRequested
-                )
+                .match(SensorDetectionRequested.class, this::onDetectionRequested)
+                .match(SensorZoneChanged.class, msg -> bindToZone(msg.zoneId()))
                 .build();
     }
 
@@ -42,11 +50,11 @@ public class SensorActor extends AbstractActor implements NodeActor {
         }
 
         System.out.println(
-                "Sensor " + sensorId + " detected an event"
+                "Sensor " + sensorId + " (" + type + ") detected an event in zone " + zoneId
         );
 
         zone.tell(
-                new SensorDetection(sensorId, zoneId),
+                new SensorDetection(sensorId, type, zoneId),
                 getSelf()
         );
     }

@@ -8,6 +8,7 @@ import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.actors.base.NodeName;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
+
 import java.time.Duration;
 
 @NodeName("ControlUnit")
@@ -44,14 +45,22 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         return recovery();
     }
 
+    @Override
+    public void preStart() {
+        updateState(SystemState.RECOVERY);
+        zoneManagerSelection.tell(new DeactivateAllZones(), getSelf());
+    }
+
     private Receive recovery() {
         //noinspection deprecation
         return defaultBuilder()
                 .match(PinEntered.class, this::onPinEnteredFromRecovery)
+                .match(PinEnteredWithZones.class,
+                        msg -> onPinEnteredFromRecovery(new PinEntered(msg.pin())))
                 .match(SensorDetection.class, detection ->
                         System.out.println(
                                 "Ignoring sensor detection during recovery: "
-                                        + detection.sensorId()
+                                        + detection.sensorId() + " (" + detection.type() + ")"
                         )
                 )
                 .build();
@@ -106,7 +115,8 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
                 .match(GetZonesRequest.class, this::OnGetZonesRequest)
                 .match(GetZonesReply.class, this::OnZonesGetReply)
                 .match(UpdatedZoneStates.class, this::OnUpdatedZoneStates)
-                .match(GetSystemStateRequest.class, this::onGetSystemStateRequest);
+                .match(GetSystemStateRequest.class, this::onGetSystemStateRequest)
+                .match(OperationRejected.class, this::onOperationRejected);
     }
 
     private void onPinEnteredFromRecovery(PinEntered message) {
@@ -116,6 +126,14 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         }
 
         getSender().tell(new InvalidPinEntered(), getSelf());
+    }
+
+    private void onOperationRejected(OperationRejected rejected) {
+        uiActorSelection.tell(rejected, getSelf());
+
+        if (state == SystemState.EXIT_DELAY) {
+            enterDisarmed();
+        }
     }
 
     public void OnGetZonesRequest(GetZonesRequest req) {
@@ -136,7 +154,7 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         }
     }
 
-    public void OnZonesGetReply(GetZonesReply reply){
+    public void OnZonesGetReply(GetZonesReply reply) {
         uiActorSelection.tell(reply, getSelf());
     }
 
@@ -148,7 +166,7 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         zoneManagerSelection.tell(assignSensorToZone, getSelf());
     }
 
-    public void OnUpdatedZoneStates(UpdatedZoneStates updatedZoneStates){
+    public void OnUpdatedZoneStates(UpdatedZoneStates updatedZoneStates) {
         uiActorSelection.tell(updatedZoneStates, getSelf());
     }
 
