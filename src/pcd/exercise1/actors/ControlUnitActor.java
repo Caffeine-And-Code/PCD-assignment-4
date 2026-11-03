@@ -1,7 +1,6 @@
 package pcd.exercise1.actors;
 
 import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.Cancellable;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
@@ -9,11 +8,7 @@ import pcd.exercise1.actors.base.NodeActor;
 import pcd.exercise1.actors.base.NodeName;
 import pcd.exercise1.protocols.MessagesProtocol.*;
 import pcd.exercise1.protocols.SystemState;
-import pcd.exercise1.support.SystemConfig;
-
 import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @NodeName("ControlUnit")
 public class ControlUnitActor extends AbstractActor implements NodeActor {
@@ -32,7 +27,6 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     private final ActorSelection uiActorSelection;
     private final ActorSelection zoneManagerSelection;
 
-    private final HashMap<String, List<String>> zoneSensors = new HashMap<>();
     private SystemState state = SystemState.RECOVERY;
     private int exitDelay = 30;
     private int entryDelay = 30;
@@ -40,15 +34,9 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     private Cancellable entryTimeout;
     private Cancellable exitTimeout;
 
-    private final Set<String> activeZones = new HashSet<>();
-
     public ControlUnitActor(ActorSelection zoneManagerSelection, ActorSelection uiActorSelection) {
         this.zoneManagerSelection = zoneManagerSelection;
         this.uiActorSelection = uiActorSelection;
-    }
-
-    private ActorSelection getZone(String zoneId) {
-        return getContext().actorSelection(SystemConfig.ZONES_NODE_PATH + zoneId);
     }
 
     @Override
@@ -73,8 +61,8 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         //noinspection deprecation
         return defaultBuilder()
                 .match(CreateZone.class, this::OnCreateZone)
-                //.match(DeleteZone.class, this::OnDeleteZone)
-                //.match(AssignSensorToZone.class, this::OnAssignSensorToZone)
+                .match(DeleteZone.class, this::OnDeleteZone)
+                .match(AssignSensorToZone.class, this::OnAssignSensorToZone)
                 .match(UpdateExitDelay.class, this::OnUpdateExitDelay)
                 .match(UpdateEntryDelay.class, this::OnUpdateEntryDelay)
                 .match(PinEnteredWithZones.class, this::OnPinEnteredFromDisarmed)
@@ -116,6 +104,8 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
         //noinspection deprecation
         return receiveBuilder()
                 .match(GetZonesRequest.class, this::OnGetZonesRequest)
+                .match(GetZonesReply.class, this::OnZonesGetReply)
+                .match(UpdatedZoneStates.class, this::OnUpdatedZoneStates)
                 .match(GetSystemStateRequest.class, this::onGetSystemStateRequest);
     }
 
@@ -129,53 +119,38 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     }
 
     public void OnGetZonesRequest(GetZonesRequest req) {
-        getSender().tell(new GetZonesReply(getZoneSensorCopy()), getSelf());
+        zoneManagerSelection.tell(req, getSelf());
     }
 
     private void onGetSystemStateRequest(GetSystemStateRequest request) {
         uiActorSelection.tell(new SystemStateUpdated(state), getSelf());
         uiActorSelection.tell(new ExitDelayUpdated(exitDelay), getSelf());
         uiActorSelection.tell(new EntryDelayUpdated(entryDelay), getSelf());
-        publishZones();
+        zoneManagerSelection.tell(new GetZonesRequest(), getSelf());
     }
-
 
     public void OnCreateZone(CreateZone createZone) {
         var zoneId = createZone.zoneId() == null ? "" : createZone.zoneId().trim();
         if (!zoneId.isEmpty()) {
             zoneManagerSelection.tell(createZone, getSelf());
         }
-
-        sendUpdatedZoneSensors(getSender());
-        publishZones();
     }
 
-    /**
-    public void OnDeleteZone(DeleteZone deleteZone) {
-        var zoneId = deleteZone.zoneId();
-        if (zoneSensors.containsKey(zoneId) && zoneSensors.get(zoneId).isEmpty()) {
-            zoneSensors.remove(zoneId);
-            getContext().findChild(zoneId).ifPresent(zoneRef -> getContext().stop(zoneRef));
-        }
+    public void OnZonesGetReply(GetZonesReply reply){
+        uiActorSelection.tell(reply, getSelf());
+    }
 
-        sendUpdatedZoneSensors(getSender());
-        publishZones();
+    public void OnDeleteZone(DeleteZone deleteZone) {
+        zoneManagerSelection.tell(deleteZone, getSelf());
     }
 
     public void OnAssignSensorToZone(AssignSensorToZone assignSensorToZone) {
-        var zoneId = assignSensorToZone.zoneId();
-        var sensorId = assignSensorToZone.sensorId();
-        if (zoneSensors.containsKey(zoneId) && zoneSensors.values().stream().anyMatch(s -> s.contains(sensorId))) {
-            zoneSensors.values().forEach(sensors -> sensors.remove(sensorId));
-            zoneSensors.get(zoneId).add(sensorId);
-     //getContext().findChild(sensorId).ifPresent(sensor ->
-     //        sensor.tell(new SensorActor.SetZone(getContext().findChild(zoneId).orElseThrow()), getSelf()));
-        }
-
-        sendUpdatedZoneSensors(getSender());
-        publishZones();
+        zoneManagerSelection.tell(assignSensorToZone, getSelf());
     }
-     **/
+
+    public void OnUpdatedZoneStates(UpdatedZoneStates updatedZoneStates){
+        uiActorSelection.tell(updatedZoneStates, getSelf());
+    }
 
     public void OnUpdateExitDelay(UpdateExitDelay updateExitDelay) {
         var seconds = updateExitDelay.seconds();
@@ -198,13 +173,11 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     public void OnPinEnteredFromDisarmed(PinEnteredWithZones pinEntered) {
         var pinAttempt = pinEntered.pin();
         if (pinAttempt.equals(CORRECT_PIN)) {
-            if (pinEntered.zonesToActive() == null || pinEntered.zonesToActive().isEmpty()
-                    || !zoneSensors.keySet().containsAll(pinEntered.zonesToActive())) {
+            if (pinEntered.zonesToActive() == null || pinEntered.zonesToActive().isEmpty()) {
                 getSender().tell(new OperationRejected("Select at least one existing zone before arming."), getSelf());
                 return;
             }
-            activeZones.clear();
-            activeZones.addAll(pinEntered.zonesToActive());
+            zoneManagerSelection.tell(new ActivateZonesRange(pinEntered.zonesToActive(), true), getSelf());
             enterExitDelay();
         } else {
             getSender().tell(new InvalidPinEntered(), getSelf());
@@ -224,9 +197,7 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     }
 
     public void OnSensorDetection(SensorDetection sensorDetection) {
-        if (activeZones.contains(sensorDetection.zoneId())) {
-            enterEntryDelay();
-        }
+        enterEntryDelay();
     }
 
     public void OnExitTimeout(ExitTimeout exitTimeout) {
@@ -235,10 +206,6 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
 
     public void OnEntryTimeout(EntryTimeout entryTimeout) {
         enterAlarm();
-    }
-
-    private void sendUpdatedZoneSensors(ActorRef to) {
-        to.tell(new UpdatedZoneSensors(getZoneSensorCopy()), getSelf());
     }
 
     private void enterExitDelay() {
@@ -276,10 +243,6 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     }
 
     private void enterArmed() {
-        activeZones.forEach(zone ->
-                getZone(zone).tell(new ActiveZone(), getSelf())
-        );
-
         getContext().become(armed());
         updateState(SystemState.ARMED);
     }
@@ -290,33 +253,18 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     }
 
     private void enterDisarmed() {
-        if (exitTimeout != null) exitTimeout.cancel();
-        if (entryTimeout != null) entryTimeout.cancel();
+        postStop();
 
-        activeZones.clear();
-
-        zoneSensors.keySet().forEach(zone ->
-                getZone(zone).tell(new DeactiveZone(), getSelf())
-        );
-
+        zoneManagerSelection.tell(new DeactivateAllZones(), getSelf());
         getContext().become(disarmed());
         updateState(SystemState.DISARMED);
     }
 
     private void updateState(SystemState newState) {
         state = newState;
-        publishZones();
         if (uiActorSelection != null) {
-            uiActorSelection.tell(new SystemStateUpdated(state), getSelf());
-        }
-    }
-
-    private void publishZones() {
-        if (uiActorSelection != null) {
-            uiActorSelection.tell(new UpdatedZoneStates(zoneSensors.keySet().stream().collect(
-                    Collectors.toUnmodifiableMap(zone -> zone, zone ->
-                            state != SystemState.DISARMED && state != SystemState.EXIT_DELAY && activeZones.contains(zone)))), getSelf());
             uiActorSelection.tell(new AlarmActiveUpdate(state == SystemState.ALARM), getSelf());
+            uiActorSelection.tell(new SystemStateUpdated(state), getSelf());
         }
     }
 
@@ -324,13 +272,5 @@ public class ControlUnitActor extends AbstractActor implements NodeActor {
     public void postStop() {
         if (exitTimeout != null) exitTimeout.cancel();
         if (entryTimeout != null) entryTimeout.cancel();
-    }
-
-    private Map<String, List<String>> getZoneSensorCopy() {
-        return zoneSensors.entrySet().stream()
-                .collect(Collectors.toUnmodifiableMap(
-                        Map.Entry::getKey,
-                        e -> List.copyOf(e.getValue())
-                ));
     }
 }

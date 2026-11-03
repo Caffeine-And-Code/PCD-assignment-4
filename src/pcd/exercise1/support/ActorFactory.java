@@ -4,6 +4,7 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import pcd.exercise1.actors.ControlUnitActor;
 import pcd.exercise1.actors.SensorActor;
+import pcd.exercise1.actors.UIActor;
 import pcd.exercise1.actors.ZoneManagerActor;
 import pcd.exercise1.actors.base.NodeActor;
 
@@ -18,7 +19,7 @@ public abstract class ActorFactory {
 
     public static void CreateControlUnit(ActorSystem system) {
         var uiActor = system.actorSelection(
-                SystemConfig.UIACTOR_NODE_PATH + NodeActor.getNodeName(ControlUnitActor.class)
+                SystemConfig.UIACTOR_NODE_PATH + NodeActor.getNodeName(UIActor.class)
         );
         var zoneManager = system.actorSelection(
                 SystemConfig.ZONES_NODE_PATH + NodeActor.getNodeName(ZoneManagerActor.class)

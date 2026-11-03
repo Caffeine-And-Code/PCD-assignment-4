@@ -22,6 +22,12 @@ public abstract class MessagesProtocol {
     public record ZoneDeactivated(String zoneId) implements Serializable {
     }
 
+    public record DeactivateAllZones() implements Serializable {
+    }
+
+    public record ActivateZonesRange(List<String> toActivate, boolean clearAlreadyActiveZones) implements Serializable {
+    }
+
     // From UI to actors
     public record GetZonesRequest() implements Serializable {
     }
