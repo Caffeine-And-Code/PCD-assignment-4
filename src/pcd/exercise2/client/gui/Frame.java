@@ -10,9 +10,9 @@ import pcd.exercise2.client.controller.ClientController;
 import pcd.exercise2.client.gui.components.Board;
 import pcd.exercise2.client.gui.components.GameNameForm;
 import pcd.exercise2.client.gui.components.PlayerNameForm;
-import pcd.exercise2.server.model.Match;
-import pcd.exercise2.server.model.MatchState;
-import pcd.exercise2.server.model.PlayerTurn;
+import pcd.exercise2.common.Match;
+import pcd.exercise2.common.MatchState;
+import pcd.exercise2.common.PlayerTurn;
 
 public class Frame extends BorderPane {
     private final ClientController controller;
@@ -27,8 +27,8 @@ public class Frame extends BorderPane {
     private String playerName;
     private boolean busy;
 
-    public Frame(String host) {
-        controller = new ClientController(this, host);
+    public Frame(String host, int port) {
+        controller = new ClientController(this, host, port);
         board = new Board(controller::makeMove);
 
         createButton.setOnAction(event -> controller.createGame(gameNameForm.getGameName(), playerNameForm.getPlayerName()));
@@ -56,8 +56,20 @@ public class Frame extends BorderPane {
             case ACTIVE -> isMyTurn() ? "Your turn" : "Waiting for the other player";
             case WIN_1 -> match.player1() + " won";
             case WIN_2 -> match.player2() + " won";
+            case WIN_1_TIMEOUT -> match.player1() + " won: " + match.player2() + " timed out";
+            case WIN_2_TIMEOUT -> match.player2() + " won: " + match.player1() + " timed out";
             case DRAW -> "Draw";
+            case CLOSED -> "Game closed";
         });
+        updateControls();
+    }
+
+    public void showGameClosed() {
+        match = null;
+        playerName = null;
+        busy = false;
+        players.setText("");
+        status.setText("Game closed. You can create or join another game");
         updateControls();
     }
 

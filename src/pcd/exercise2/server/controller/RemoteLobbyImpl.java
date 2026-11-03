@@ -1,7 +1,7 @@
 package pcd.exercise2.server.controller;
 
-import pcd.exercise2.server.remote.RemoteLobby;
-import pcd.exercise2.server.remote.RemoteGame;
+import pcd.exercise2.common.RemoteLobby;
+import pcd.exercise2.common.RemoteGame;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -21,7 +21,8 @@ public class RemoteLobbyImpl implements RemoteLobby {
         if (games.containsKey(gameName)) {
             throw new IllegalArgumentException("Game already exists");
         }
-        RemoteGameImpl controller = new RemoteGameImpl(gameName, playerName);
+        RemoteGameImpl controller = new RemoteGameImpl(gameName, playerName,
+                () -> closeGame(gameName));
         RemoteGame stub = (RemoteGame) UnicastRemoteObject.exportObject(controller, 0);
         games.put(gameName, new GameEntry(controller, stub));
         return stub;
@@ -35,5 +36,15 @@ public class RemoteLobbyImpl implements RemoteLobby {
         }
         entry.controller().join(playerName);
         return entry.stub();
+    }
+
+    private synchronized void closeGame(String gameName) {
+        GameEntry entry = games.remove(gameName);
+        if (entry == null) return;
+        entry.controller().close();
+        try {
+            UnicastRemoteObject.unexportObject(entry.controller(), true);
+        } catch (Exception ignored) {
+        }
     }
 }

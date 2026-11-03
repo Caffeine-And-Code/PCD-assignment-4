@@ -1,4 +1,4 @@
-package pcd.exercise2.server.model;
+package pcd.exercise2.common;
 
 import java.io.Serializable;
 import java.util.List;

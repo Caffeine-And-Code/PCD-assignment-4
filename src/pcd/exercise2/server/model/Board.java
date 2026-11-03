@@ -1,5 +1,7 @@
 package pcd.exercise2.server.model;
 
+import pcd.exercise2.common.PlayerTurn;
+
 import java.util.ArrayList;
 import java.util.List;
 

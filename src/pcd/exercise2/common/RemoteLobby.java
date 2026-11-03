@@ -1,4 +1,4 @@
-package pcd.exercise2.server.remote;
+package pcd.exercise2.common;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

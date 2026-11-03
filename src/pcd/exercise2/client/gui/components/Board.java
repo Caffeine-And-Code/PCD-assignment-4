@@ -4,7 +4,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
-import pcd.exercise2.server.model.Match;
+import pcd.exercise2.common.Match;
 
 import java.util.function.IntConsumer;
 
